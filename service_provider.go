@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/kr/pretty"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -16,8 +17,8 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
-	"github.com/crewjam/saml/logger"
-	"github.com/crewjam/saml/xmlenc"
+	"github.com/icggroup/saml/logger"
+	"github.com/icggroup/saml/xmlenc"
 	dsig "github.com/russellhaering/goxmldsig"
 	"github.com/russellhaering/goxmldsig/etreeutils"
 )
@@ -203,6 +204,52 @@ func (sp *ServiceProvider) GetSSOBindingLocation(binding string) string {
 		}
 	}
 	return ""
+}
+
+// getIDPSigningCerts returns all certificates which we can use to verify things
+// signed by the IDP in PEM format, or nil if no such certificate is found.
+func (sp *ServiceProvider) getIDPSigningCerts() ([]*x509.Certificate, error) {
+	certs := []*x509.Certificate{}
+	for _, idpSSODescriptor := range sp.IDPMetadata.IDPSSODescriptors {
+		for idx, keyDescriptor := range idpSSODescriptor.KeyDescriptors {
+			if keyDescriptor.Use == "signing" {
+				pretty.Printf("processing signing cert #%d\n", idx)
+				certStr := keyDescriptor.KeyInfo.Certificate
+				// If there are no explicitly signing certs, just return the first
+				// non-empty cert we find.
+				if certStr == "" {
+					for _, idpSSODescriptor := range sp.IDPMetadata.IDPSSODescriptors {
+						for _, keyDescriptor := range idpSSODescriptor.KeyDescriptors {
+							if keyDescriptor.Use == "" && keyDescriptor.KeyInfo.Certificate != "" {
+								certStr = keyDescriptor.KeyInfo.Certificate
+								break
+							}
+						}
+					}
+				}
+
+				if certStr == "" {
+					return nil, errors.New("cannot find any signing certificate in the IDP SSO descriptor")
+				}
+
+				// cleanup whitespace
+				certStr = regexp.MustCompile(`\s+`).ReplaceAllString(certStr, "")
+				certBytes, err := base64.StdEncoding.DecodeString(certStr)
+				if err != nil {
+					return nil, fmt.Errorf("cannot parse certificate: %s", err)
+				}
+
+				parsedCert, err := x509.ParseCertificate(certBytes)
+				if err != nil {
+					return nil, err
+				}
+
+				certs = append(certs, parsedCert)
+			}
+		}
+	}
+
+	return certs, nil
 }
 
 // getIDPSigningCert returns the certificate which we can use to verify things
@@ -627,13 +674,13 @@ func (sp *ServiceProvider) validateSigned(responseEl *etree.Element) error {
 
 // validateSignature returns nill iff the Signature embedded in the element is valid
 func (sp *ServiceProvider) validateSignature(el *etree.Element) error {
-	cert, err := sp.getIDPSigningCert()
+	certs, err := sp.getIDPSigningCerts()
 	if err != nil {
 		return err
 	}
 
 	certificateStore := dsig.MemoryX509CertificateStore{
-		Roots: []*x509.Certificate{cert},
+		Roots: certs,
 	}
 
 	validationContext := dsig.NewDefaultValidationContext(&certificateStore)

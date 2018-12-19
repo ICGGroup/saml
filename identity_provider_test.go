@@ -18,10 +18,10 @@ import (
 	"os"
 
 	"github.com/beevik/etree"
-	"github.com/crewjam/saml/logger"
-	"github.com/crewjam/saml/testsaml"
-	"github.com/crewjam/saml/xmlenc"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/icggroup/saml/logger"
+	"github.com/icggroup/saml/testsaml"
+	"github.com/icggroup/saml/xmlenc"
 	. "gopkg.in/check.v1"
 )
 

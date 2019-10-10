@@ -37,6 +37,7 @@ func (n NameIDFormat) Element() *etree.Element {
 // Name ID formats
 const (
 	UnspecifiedNameIDFormat1_1 NameIDFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
+	EmailAddressNameIDFormat1_1   NameIDFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
 	UnspecifiedNameIDFormat    NameIDFormat = "urn:oasis:names:tc:SAML:2.0:nameid-format:unspecified"
 	TransientNameIDFormat      NameIDFormat = "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
 	EmailAddressNameIDFormat   NameIDFormat = "urn:oasis:names:tc:SAML:2.0:nameid-format:emailAddress"

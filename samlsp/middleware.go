@@ -9,7 +9,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/icggroup/saml"
-	"github.com/kr/pretty"
+	
 )
 
 // Middleware implements middleware than allows a web application
@@ -72,11 +72,11 @@ func (m *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(buf)
 		return
 	}
-	pretty.Println("Compare URL", r.URL.Path, m.ServiceProvider.AcsURL.Path)
+	// pretty.Println("Compare URL", r.URL.Path, m.ServiceProvider.AcsURL.Path)
 	if r.URL.Path == m.ServiceProvider.AcsURL.Path {
 		r.ParseForm()
 		assertion, err := m.ServiceProvider.ParseResponse(r, m.getPossibleRequestIDs(r))
-		pretty.Println("Assertion", assertion, err)
+		// pretty.Println("Assertion", assertion, err)
 		if err != nil {
 			if parseErr, ok := err.(*saml.InvalidResponseError); ok {
 				m.ServiceProvider.Logger.Printf("RESPONSE: ===\n%s\n===\nNOW: %s\nERROR: %s",
@@ -85,7 +85,7 @@ func (m *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		pretty.Println("About to Authorize")
+		// pretty.Println("About to Authorize")
 		m.Authorize(w, r, assertion)
 		return
 	}
@@ -99,9 +99,8 @@ func (m *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // to start the SAML auth flow.
 func (m *Middleware) RequireAccount(handler http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		pretty.Println("Inside dis stuff!")
 		if token := m.GetAuthorizationToken(r); token != nil {
-			pretty.Println("About to callback our handler")
+			// pretty.Println("About to callback our handler")
 			r = r.WithContext(WithToken(r.Context(), token))
 			handler.ServeHTTP(w, r)
 			return
@@ -208,9 +207,8 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 	redirectURI := "/"
 
 	if relayState := r.Form.Get("RelayState"); relayState != "" {
-		pretty.Println("Check 1")
 		stateValue := m.ClientState.GetState(r, relayState)
-		pretty.Println("State Value", stateValue)
+		// pretty.Println("State Value", stateValue)
 		if stateValue == "" {
 			m.ServiceProvider.Logger.Printf("cannot find corresponding state: %s", relayState)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
@@ -221,10 +219,10 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 			ValidMethods: []string{jwtSigningMethod.Name},
 		}
 		state, err := jwtParser.Parse(stateValue, func(t *jwt.Token) (interface{}, error) {
-			pretty.Println("Secret Block Error")
+			// pretty.Println("Secret Block Error")
 			return secretBlock, nil
 		})
-		pretty.Println("State", state)
+		// pretty.Println("State", state)
 		if err != nil || !state.Valid {
 			m.ServiceProvider.Logger.Printf("Cannot decode state JWT: %s (%s)", err, stateValue)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
@@ -232,7 +230,7 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 		}
 		claims := state.Claims.(jwt.MapClaims)
 		redirectURI = claims["uri"].(string)
-		pretty.Println("Claims Obj", claims)
+		// pretty.Println("Claims Obj", claims)
 
 		// delete the cookie
 		m.ClientState.DeleteState(w, r, relayState)
@@ -246,7 +244,7 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 	claims.NotBefore = now.Unix()
 	if sub := assertion.Subject; sub != nil {
 		if nameID := sub.NameID; nameID != nil {
-			pretty.Println("NameID", nameID)
+			// pretty.Println("NameID", nameID)
 			claims.StandardClaims.Subject = nameID.Value
 		}
 	}
@@ -267,7 +265,7 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 	if err != nil {
 		panic(err)
 	}
-	pretty.Println("Claims 2", claims)
+	// pretty.Println("Claims 2", claims)
 	m.ClientToken.SetToken(w, r, signedToken, m.TokenMaxAge)
 	http.Redirect(w, r, redirectURI, http.StatusFound)
 }

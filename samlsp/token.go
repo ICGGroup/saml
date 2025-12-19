@@ -3,12 +3,12 @@ package samlsp
 import (
 	"context"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 // AuthorizationToken represents the data stored in the authorization cookie.
 type AuthorizationToken struct {
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 	Attributes Attributes `json:"attr"`
 }
 

@@ -27,12 +27,6 @@
   revision = "8902c56451e9b58ff940bbe5fec35d5f9c04584a"
 
 [[projects]]
-  name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
-  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
-  version = "v3.2.0"
-
-[[projects]]
   name = "github.com/jonboulle/clockwork"
   packages = ["."]
   revision = "2eee05ed794112d45db504eb05aa693efd2b8b09"

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 	dsig "github.com/russellhaering/goxmldsig"
 	. "gopkg.in/check.v1"
 

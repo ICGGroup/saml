@@ -7,9 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/icggroup/saml"
-	
 )
 
 // Middleware implements middleware than allows a web application
@@ -238,14 +237,14 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 
 	now := saml.TimeNow()
 	claims := AuthorizationToken{}
-	claims.Audience = m.ServiceProvider.Metadata().EntityID
+	claims.RegisteredClaims.Audience = m.ServiceProvider.Metadata().EntityID
 	claims.IssuedAt = now.Unix()
-	claims.ExpiresAt = now.Add(m.TokenMaxAge).Unix()
-	claims.NotBefore = now.Unix()
+	claims.ExpiresAt = jwt.NewNumericDate(now.Add(m.TokenMaxAge).Unix())
+	claims.RegisteredClaims.NotBefore = now.Unix()
 	if sub := assertion.Subject; sub != nil {
 		if nameID := sub.NameID; nameID != nil {
 			// pretty.Println("NameID", nameID)
-			claims.StandardClaims.Subject = nameID.Value
+			claims.RegisteredClaims.Subject = nameID.Value
 		}
 	}
 	for _, attributeStatement := range assertion.AttributeStatements {
@@ -297,11 +296,11 @@ func (m *Middleware) GetAuthorizationToken(r *http.Request) *AuthorizationToken 
 		m.ServiceProvider.Logger.Printf("ERROR: invalid token: %s", err)
 		return nil
 	}
-	if err := tokenClaims.StandardClaims.Valid(); err != nil {
+	if err := tokenClaims.RegisteredClaims.Valid(); err != nil {
 		m.ServiceProvider.Logger.Printf("ERROR: invalid token claims: %s", err)
 		return nil
 	}
-	if tokenClaims.Audience != m.ServiceProvider.Metadata().EntityID {
+	if tokenClaims.RegisteredClaims.Audience != m.ServiceProvider.Metadata().EntityID {
 		m.ServiceProvider.Logger.Printf("ERROR: tokenClaims.Audience does not match EntityID")
 		return nil
 	}
@@ -316,9 +315,8 @@ func (m *Middleware) GetAuthorizationToken(r *http.Request) *AuthorizationToken 
 //
 // For example:
 //
-//     goji.Use(m.RequireAccount)
-//     goji.Use(RequireAttributeMiddleware("eduPersonAffiliation", "Staff"))
-//
+//	goji.Use(m.RequireAccount)
+//	goji.Use(RequireAttributeMiddleware("eduPersonAffiliation", "Staff"))
 func RequireAttribute(name, value string) func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

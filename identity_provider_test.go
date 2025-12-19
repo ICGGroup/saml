@@ -18,7 +18,7 @@ import (
 	"os"
 
 	"github.com/beevik/etree"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/icggroup/saml/logger"
 	"github.com/icggroup/saml/testsaml"
 	"github.com/icggroup/saml/xmlenc"

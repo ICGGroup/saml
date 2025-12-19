@@ -15,7 +15,7 @@ import (
 
 	"crypto/rsa"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/icggroup/saml"
 	"github.com/icggroup/saml/logger"
 )

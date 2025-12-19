@@ -174,10 +174,11 @@ func (m *Middleware) RequireAccount(handler http.Handler) http.Handler {
 func (m *Middleware) getPossibleRequestIDs(r *http.Request) []string {
 	rv := []string{}
 	for _, value := range m.ClientState.GetStates(r) {
-		jwtParser := jwt.Parser{
-			ValidMethods: []string{jwtSigningMethod.Name},
-		}
+		jwtParser := jwt.Parser{}
 		token, err := jwtParser.Parse(value, func(t *jwt.Token) (interface{}, error) {
+			if t.Method != jwtSigningMethod {
+				return nil, jwt.ErrSignatureInvalid
+			}
 			secretBlock := x509.MarshalPKCS1PrivateKey(m.ServiceProvider.Key)
 			return secretBlock, nil
 		})
@@ -214,10 +215,11 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 			return
 		}
 
-		jwtParser := jwt.Parser{
-			ValidMethods: []string{jwtSigningMethod.Name},
-		}
+		jwtParser := jwt.Parser{}
 		state, err := jwtParser.Parse(stateValue, func(t *jwt.Token) (interface{}, error) {
+			if t.Method != jwtSigningMethod {
+				return nil, jwt.ErrSignatureInvalid
+			}
 			// pretty.Println("Secret Block Error")
 			return secretBlock, nil
 		})
@@ -237,10 +239,10 @@ func (m *Middleware) Authorize(w http.ResponseWriter, r *http.Request, assertion
 
 	now := saml.TimeNow()
 	claims := AuthorizationToken{}
-	claims.RegisteredClaims.Audience = m.ServiceProvider.Metadata().EntityID
-	claims.IssuedAt = now.Unix()
-	claims.ExpiresAt = jwt.NewNumericDate(now.Add(m.TokenMaxAge).Unix())
-	claims.RegisteredClaims.NotBefore = now.Unix()
+	claims.RegisteredClaims.Audience = jwt.ClaimStrings{m.ServiceProvider.Metadata().EntityID}
+	claims.IssuedAt = jwt.NewNumericDate(now) // now.Unix()
+	claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(m.TokenMaxAge)))
+	claims.RegisteredClaims.NotBefore = jwt.NewNumericDate(now) // now.Unix()
 	if sub := assertion.Subject; sub != nil {
 		if nameID := sub.NameID; nameID != nil {
 			// pretty.Println("NameID", nameID)
@@ -296,11 +298,15 @@ func (m *Middleware) GetAuthorizationToken(r *http.Request) *AuthorizationToken 
 		m.ServiceProvider.Logger.Printf("ERROR: invalid token: %s", err)
 		return nil
 	}
-	if err := tokenClaims.RegisteredClaims.Valid(); err != nil {
-		m.ServiceProvider.Logger.Printf("ERROR: invalid token claims: %s", err)
-		return nil
+	entityID := m.ServiceProvider.Metadata().EntityID
+	audienceMatch := false
+	for _, aud := range tokenClaims.RegisteredClaims.Audience {
+		if aud == entityID {
+			audienceMatch = true
+			break
+		}
 	}
-	if tokenClaims.RegisteredClaims.Audience != m.ServiceProvider.Metadata().EntityID {
+	if !audienceMatch {
 		m.ServiceProvider.Logger.Printf("ERROR: tokenClaims.Audience does not match EntityID")
 		return nil
 	}

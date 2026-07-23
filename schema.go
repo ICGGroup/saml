@@ -473,7 +473,7 @@ func (a *Assertion) Element() *etree.Element {
 	}
 
 	// err := etreeutils.TransformExcC14n(el, canonicalizerPrefixList, false)
-	err := etreeutils.TransformExcC14n(el, canonicalizerPrefixList)
+	err := etreeutils.TransformExcC14n(el, canonicalizerPrefixList, false)
 	if err != nil {
 		panic(err)
 	}

@@ -44,15 +44,7 @@
   revision = "e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f"
   version = "v0.1.0"
 
-[[projects]]
-  branch = "master"
-  name = "github.com/russellhaering/goxmldsig"
-  packages = [
-    ".",
-    "etreeutils",
-    "types"
-  ]
-  revision = "7acd5e4a6ef74fe1b082c20f119556adf70c3944"
+
 
 [[projects]]
   name = "github.com/zenazn/goji"
